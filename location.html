@@ -39,8 +39,7 @@
             map: map,
             position: myLatLng,
             title: 'Destination',
-            draggable:true,
-            icon: {scaledSize : new google.maps.Size(100, 100)}
+            draggable:true
         });
 		
 		var walkPath = new google.maps.Polyline({
@@ -79,17 +78,17 @@
                       newPath.push(new google.maps.LatLng(position.coords.latitude, position.coords.longitude));
                       walkPath.setPath(newPath);
                       console.log(newPath);
-                  }, function() {
-                      handleLocationError();
+                  }, function(err) {
+                      handleLocationError('getCurrentPosition exception:' + err.message );
                   });
               } else {
                   // Browser doesn't support Geolocation
-                  handleLocationError();
+                  handleLocationError('location not exist');
               }
           }
 
-          var handleLocationError = function (){
-              console.log('can\'t get location!');
+          var handleLocationError = function (m){
+              alert('m');
           }
 
           setInterval(periodicallyUpdatePath, 2000);
