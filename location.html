@@ -1,0 +1,70 @@
+
+<html>
+  <head>
+    <!-- This stylesheet contains specific styles for displaying
+         the map on this page. Replace it with your own styles as
+         described in the documentation:
+         https://developers.google.com/maps/documentation/javascript/tutorial
+    -->
+    <style>
+		/* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 90%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+	   #wrapper { position: relative; }
+		#over_map { position: absolute; top: 10px; left: 10px; z-index: 99; }
+	 </style>
+  </head>
+  <body>
+	  <div id="wrapper">
+		<div id="map"></div>
+		  <div id="over_map"></div>
+		</div>
+  </body>
+      <script>
+      function initMap() {
+        var myLatLng = {lat: -25.363, lng: 131.044};
+
+        // Create a map object and specify the DOM element
+        // for display.
+        var map = new google.maps.Map(document.getElementById('map'), {
+          center: myLatLng,
+          zoom: 4
+        });
+
+        // Create a marker and set its position.
+        var marker = new google.maps.Marker({
+          map: map,
+          position: myLatLng,
+          title: 'Hello World!',
+		  draggable:true
+        });
+		
+		var walkPath = new google.maps.Polyline({
+          path: [],
+          geodesic: true,
+          strokeColor: '#FF0000',
+          strokeOpacity: 1.0,
+          strokeWeight: 2
+        });
+		
+		walkPath.setMap(map);
+		
+		google.maps.event.addListener(map, 'click', function(event){
+			var newPath = walkPath.getPath();
+			newPath.push(new google.maps.LatLng(event.latLng.lat(), event.latLng.lng()))
+			walkPath.setPath(newPath); 
+		});
+      }
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPnV_7djRAy8m_RuM5T0QIHU5R-07s3Ic&callback=initMap"
+        async defer></script>
+</html>
