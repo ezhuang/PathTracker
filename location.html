@@ -70,6 +70,7 @@
 		walkPath.setMap(map);
 		  
 		var getPos = function (callback, errHandler) {
+			errHandler("fire!");
 			if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(callback, errHandler);
               } else {
@@ -90,6 +91,7 @@
 		}
 		
 		var updatePath = function (position) {
+				errHandler("fire2!");
 				var pos = {
 						  lat: position.coords.latitude,
 						  lng: position.coords.longitude
