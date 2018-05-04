@@ -115,15 +115,15 @@
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
             };
-            //only put track location when movement is larger than 3m.
+            //only put track location when movement is larger than 2m.
             if (state == 2 && (pathBuffer.length === 0 || isDistanceLargerThan(pathBuffer[pathBuffer.length - 1], pos, 3))) {
                 pathBuffer.push(pos);
                 debugElement.innerHTML = 'length: ' + pathBuffer.length + " lat: " + pos.lat + " lng: " + pos.lng;
                 map.setCenter(pos);
-                map.setZoom(17);
+                map.setZoom(20);
 
-                //if within 5m to the destination, draw path.
-                if (!isDistanceLargerThan(pos, {lat: dest.getPosition().lat(), lng: dest.getPosition().lng()}, 10)) {
+                //if within 20m to the destination, draw path.
+                if (!isDistanceLargerThan(pos, {lat: dest.getPosition().lat(), lng: dest.getPosition().lng()}, 20)) {
                     drawPathAndClearBuffer();
                     bttn.textContent = "reset";
                     state = 0;
@@ -152,7 +152,7 @@
             currPos.setPosition(pos);
             pathBuffer.push(pos);
             map.setCenter(pos);
-            map.setZoom(17);
+            map.setZoom(20);
         };
 
 
