@@ -40,7 +40,7 @@
             map: map,
             position: initLatLng,
             title: 'Destination',
-            draggable:true
+            draggable:false
         });
 		
 		 var currPos = new google.maps.Marker({
@@ -55,23 +55,29 @@
 			}
         });
 		
-		var walkPath = new google.maps.Polyline({
-          path: [],
-          geodesic: true,
-          strokeColor: '#FF0000',
-          strokeOpacity: 1.0,
-          strokeWeight: 4
-        });
+		var walkPath = null;
 		
 		var bttn = document.getElementById('over_map_button');
 		
 		var debugElement = document.getElementById('debug');
 		
-		walkPath.setMap(map);
-		var counter = 0;
+		var state = 0;
+		var pathBuffer = [];
+		
+		var updatePath = function (position) {
+			var pos = {
+								  lat: position.coords.latitude,
+								  lng: position.coords.longitude
+				};
+			if (state == 2) {
+				pathBuffer.push(pos);
+				debugElement.innerHTML = 'length: ' + pathBuffer.length + " lat: " + pos.lat + " lng: " + pos.lng;
+			}
+			if (walkPath !== null)
+				currPos.setPosition(pos);
+		}
+		
 		var getPos = function (callback, errHandler) {
-			debug.innerHTML = "fire" + counter;
-			counter++;
 			if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(callback, errHandler);
               } else {
@@ -84,28 +90,15 @@
 						  lat: position.coords.latitude,
 						  lng: position.coords.longitude
 					  };
-
+			
 			 dest.setPosition(pos);
 			 currPos.setPosition(pos);
+			 pathBuffer.push(pos);
 			 map.setCenter(pos);
 			 map.setZoom(17);
 		}
 		
-		var updatePath = function (position) {
-				try {
-					var pos = {
-							  lat: position.coords.latitude,
-							  lng: position.coords.longitude
-						  };
-				   var newPath = walkPath.getPath();
-				   debugElement.innerHTML = 'length: ' + newPath.length + " lat: " + pos.lat + " lng: " + pos.lng;
-				   newPath.push(new google.maps.LatLng(pos));
-				   walkPath.setPath(newPath);
-				   currPos.setPosition(pos);
-				}catch (err) {
-					debug.innerHTML = err.message;
-				}
-		}
+		
 		
 		var alertErr = function (e){
               alert(e.message);
@@ -115,29 +108,39 @@
 			debug.innerHTML = e.message;
 		}
 		
-		getPos(initDestAndCurrPos, dumpError);
 		
 		//get current position every 2 seconds
-		setInterval(function(){getPos(updatePath, dumpError);}, 2000); 
-		
 		
 		var getOnClickHandler = function() {
-			var state = 0;
 			return function() {
 				switch(state) {
 					case 0:
-						bttn.textContent = "start";
+						getPos(initDestAndCurrPos, dumpError);
+						walkPath && walkPath.setMap(null);
+						dest.setDraggable(true);
+						walkPath = new google.maps.Polyline({
+										  path: [],
+										  geodesic: true,
+										  strokeColor: '#FF0000',
+										  strokeOpacity: 1.0,
+										  strokeWeight: 4
+										});
+						bttn.textContent = "confirm";
 						state++;
 						break;
 					case 1:
-						bttn.textContent = "confirm your destination";
+						dest.setDraggable(false);
+						bttn.textContent = "stop";
 						state++;
 						break;
 					case 2:
-						bttn.textContent = "stop tracking";
-						state++;
-						break;
-					case 3:
+						//draw path
+						var newPath = walkPath.getPath(); 
+						for (var i = 0; i < pathBuffer.length; i++)
+							newPath.push(new google.maps.LatLng(pathBuffer[i]));
+						walkPath.setPath(newPath);
+						walkPath.setMap(map);
+						pathBuffer = [];
 						bttn.textContent = "reset";
 						state = 0;
 						break;
@@ -147,7 +150,15 @@
 				};
 			};
 		};
-		
+		 if (navigator.geolocation) {
+			 navigator.geolocation.watchPosition(
+						updatePath, 
+						dumpError, 
+						{ 
+							enableHighAccuracy: true,
+							timeout: 5000} 
+						);
+		}
 		bttn.addEventListener("click", getOnClickHandler());
 		
       }
