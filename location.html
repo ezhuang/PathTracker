@@ -1,174 +1,234 @@
-
 <html>
-  <head>
+<head>
     <style>
-      #map {
-        height: 100%;
-      }
-      html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-      }
-	   #wrapper { position: relative; }
-        #over_map_button { position: absolute; bottom: 1em; left: 35%; z-index: 99; width: 30%}
-		 #debug { position: absolute; bottom: 3em; left: 10%; z-index: 99;}
-	 </style>
-      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+        #map {
+            height: 100%;
+        }
 
-  </head>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
 
-  <body>
-		<div id="wrapper">
-			<div id="map"></div>
-			<div id="debug"></div>
-			<button type="button" class="btn btn-primary" id="over_map_button">Start</button>
-		</div>
-  </body>
-      <script>
-      function initMap() {
+        #wrapper {
+            position: relative;
+        }
+
+        #over_map_button {
+            position: absolute;
+            bottom: 1em;
+            left: 35%;
+            z-index: 99;
+            width: 30%
+        }
+
+        #debug {
+            position: absolute;
+            bottom: 3em;
+            left: 10%;
+            z-index: 99;
+        }
+    </style>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
+          integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+
+</head>
+
+<body>
+<div id="wrapper">
+    <div id="map"></div>
+    <div id="debug"></div>
+    <button type="button" class="btn btn-primary" id="over_map_button">Start</button>
+</div>
+</body>
+<script>
+    function initMap() {
         var initLatLng = {lat: -25.363, lng: 131.044};
 
         // Create a map object and specify the DOM element
         // for display.
         var map = new google.maps.Map(document.getElementById('map'), {
-          center: initLatLng,
-          zoom: 4
+            center: initLatLng,
+            zoom: 4
         });
 
         var dest = new google.maps.Marker({
             map: map,
             position: initLatLng,
             title: 'Destination',
-            draggable:false
+            draggable: false
         });
-		
-		 var currPos = new google.maps.Marker({
+
+        var currPos = new google.maps.Marker({
             map: map,
             position: initLatLng,
             title: 'Current Position',
             icon: {
-				url: 'walking-icon.jpg', 
-				scaledSize: new google.maps.Size(20, 32),  
-				origin: new google.maps.Point(0, 0),
-				anchor: new google.maps.Point(10, 16)
-			}
+                url: 'walking-icon.jpg',
+                scaledSize: new google.maps.Size(20, 32),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(10, 16)
+            }
         });
-		
-		var walkPath = null;
-		
-		var bttn = document.getElementById('over_map_button');
-		
-		var debugElement = document.getElementById('debug');
-		
-		var state = 0;
-		var pathBuffer = [];
-		
-		var updatePath = function (position) {
-			var pos = {
-								  lat: position.coords.latitude,
-								  lng: position.coords.longitude
-				};
-			if (state == 2) {
-				pathBuffer.push(pos);
-				debugElement.innerHTML = 'length: ' + pathBuffer.length + " lat: " + pos.lat + " lng: " + pos.lng;
-			}
-			if (walkPath !== null)
-				currPos.setPosition(pos);
-		}
-		
-		var getPos = function (callback, errHandler) {
-			if (navigator.geolocation) {
-                  navigator.geolocation.getCurrentPosition(callback, errHandler);
-              } else {
-                  errHandler(new Error( 'Your enviroment doesn\'t support Geolocation'));
-              }
-		}
-		
-		var initDestAndCurrPos = function(position) {
-			var pos = {
-						  lat: position.coords.latitude,
-						  lng: position.coords.longitude
-					  };
-			
-			 dest.setPosition(pos);
-			 currPos.setPosition(pos);
-			 pathBuffer.push(pos);
-			 map.setCenter(pos);
-			 map.setZoom(17);
-		}
-		
-		
-		
-		var alertErr = function (e){
-              alert(e.message);
+
+        var walkPath = null;
+
+        var bttn = document.getElementById('over_map_button');
+
+        var debugElement = document.getElementById('debug');
+
+        var state = 0;
+        var pathBuffer = [];
+
+        var rad = function(x) {
+            return x * Math.PI / 180;
+        };
+
+        var getDistance = function(p1, p2) {
+            var R = 6378137; // Earth’s mean radius in meter
+            var dLat = rad(p2.lat - p1.lat);
+            var dLong = rad(p2.lng - p1.lng);
+            var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(rad(p1.lat)) * Math.cos(rad(p2.lat)) *
+                Math.sin(dLong / 2) * Math.sin(dLong / 2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            var d = R * c;
+            return d; // returns the distance in meter
+        };
+
+        var isDistanceLargerThan = function (p1, p2, meter) {
+            return getDistance(p1, p2) > meter;
+        };
+
+        var drawPathAndClearBuffer = function() {
+            var newPath = walkPath.getPath();
+            for (var i = 0; i < pathBuffer.length; i++)
+                newPath.push(new google.maps.LatLng(pathBuffer[i]));
+            walkPath.setPath(newPath);
+            walkPath.setMap(map);
+            pathBuffer = [];
+        };
+
+        var updatePath = function (position) {
+            var pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            //only put track location when movement is larger than 3m.
+            if (state == 2 && (pathBuffer.length === 0 || isDistanceLargerThan(pathBuffer[pathBuffer.length - 1], pos, 3))) {
+                pathBuffer.push(pos);
+                debugElement.innerHTML = 'length: ' + pathBuffer.length + " lat: " + pos.lat + " lng: " + pos.lng;
+                map.setCenter(pos);
+                map.setZoom(17);
+
+                //if within 5m to the destination, draw path.
+                if (!isDistanceLargerThan(pos, {lat: dest.getPosition().lat(), lng: dest.getPosition().lng()}, 10)) {
+                    drawPathAndClearBuffer();
+                    bttn.textContent = "reset";
+                    state = 0;
+                }
+
+            }
+            if (walkPath !== null)
+                currPos.setPosition(pos);
+        };
+
+        var getPos = function (callback, errHandler) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(callback, errHandler);
+            } else {
+                errHandler(new Error('Your enviroment doesn\'t support Geolocation'));
+            }
+        };
+
+        var initDestAndCurrPos = function (position) {
+            var pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+
+            dest.setPosition(pos);
+            currPos.setPosition(pos);
+            pathBuffer.push(pos);
+            map.setCenter(pos);
+            map.setZoom(17);
+        };
+
+
+        var alertErr = function (e) {
+            alert(e.message);
+        };
+
+        var dumpError = function (e) {
+            debug.innerHTML = e.message;
+        };
+
+
+
+
+        var getOnClickHandler = function () {
+            return function () {
+                switch (state) {
+                    case 0:
+                        getPos(initDestAndCurrPos, dumpError);
+                        walkPath && walkPath.setMap(null);
+                        dest.setDraggable(true);
+                        walkPath = new google.maps.Polyline({
+                            path: [],
+                            geodesic: true,
+                            strokeColor: '#FF0000',
+                            strokeOpacity: 1.0,
+                            strokeWeight: 4
+                        });
+                        bttn.textContent = "confirm";
+                        state++;
+                        break;
+                    case 1:
+                        dest.setDraggable(false);
+                        bttn.textContent = "stop";
+                        state++;
+                        break;
+                    case 2:
+                        //draw path
+                        drawPathAndClearBuffer();
+                        bttn.textContent = "reset";
+                        state = 0;
+                        break;
+                    default:
+                        throw Error('state is wrong!');
+                        break;
+                }
+                ;
+            };
+        };
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                updatePath,
+                dumpError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000
+                }
+            );
         }
-		
-		var dumpError = function (e) {
-			debug.innerHTML = e.message;
-		}
-		
-		
-		//get current position every 2 seconds
-		
-		var getOnClickHandler = function() {
-			return function() {
-				switch(state) {
-					case 0:
-						getPos(initDestAndCurrPos, dumpError);
-						walkPath && walkPath.setMap(null);
-						dest.setDraggable(true);
-						walkPath = new google.maps.Polyline({
-										  path: [],
-										  geodesic: true,
-										  strokeColor: '#FF0000',
-										  strokeOpacity: 1.0,
-										  strokeWeight: 4
-										});
-						bttn.textContent = "confirm";
-						state++;
-						break;
-					case 1:
-						dest.setDraggable(false);
-						bttn.textContent = "stop";
-						state++;
-						break;
-					case 2:
-						//draw path
-						var newPath = walkPath.getPath(); 
-						for (var i = 0; i < pathBuffer.length; i++)
-							newPath.push(new google.maps.LatLng(pathBuffer[i]));
-						walkPath.setPath(newPath);
-						walkPath.setMap(map);
-						pathBuffer = [];
-						bttn.textContent = "reset";
-						state = 0;
-						break;
-					default:
-						throw Error('state is wrong!');
-						break;
-				};
-			};
-		};
-		 if (navigator.geolocation) {
-			 navigator.geolocation.watchPosition(
-						updatePath, 
-						dumpError, 
-						{ 
-							enableHighAccuracy: true,
-							timeout: 5000} 
-						);
-		}
-		bttn.addEventListener("click", getOnClickHandler());
-		
-      }
+
+        bttn.addEventListener("click", getOnClickHandler());
+
+    }
 
 
-
-    </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPnV_7djRAy8m_RuM5T0QIHU5R-07s3Ic&callback=initMap"
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPnV_7djRAy8m_RuM5T0QIHU5R-07s3Ic&callback=initMap"
         async defer></script>
-      <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+        integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"
+        integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+        crossorigin="anonymous"></script>
 </html>
