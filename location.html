@@ -70,7 +70,7 @@
 		walkPath.setMap(map);
 		  
 		var getPos = function (callback, errHandler) {
-			errHandler("fire!");
+			debug.innerHTML = "fire";
 			if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(callback, errHandler);
               } else {
@@ -91,16 +91,19 @@
 		}
 		
 		var updatePath = function (position) {
-				errHandler("fire2!");
-				var pos = {
-						  lat: position.coords.latitude,
-						  lng: position.coords.longitude
-					  };
-			   var newPath = walkPath.getPath();
-			   debugElement.innerHTML = 'length: ' + newPath.length + " lat: " + pos.lat + " lng: " + pos.lng;
-               newPath.push(new google.maps.LatLng(pos));
-               walkPath.setPath(newPath);
-			   currPos.setPosition(pos);
+				try {
+					var pos = {
+							  lat: position.coords.latitude,
+							  lng: position.coords.longitude
+						  };
+				   var newPath = walkPath.getPath();
+				   debugElement.innerHTML = 'length: ' + newPath.length + " lat: " + pos.lat + " lng: " + pos.lng;
+				   newPath.push(new google.maps.LatLng(pos));
+				   walkPath.setPath(newPath);
+				   currPos.setPosition(pos);
+				}catch (err) {
+					debug.innerHTML = err.message;
+				}
 		}
 		
 		var alertErr = function (e){
