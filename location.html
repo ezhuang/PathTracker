@@ -99,14 +99,18 @@
 			   currPos.setPosition(pos);
 		}
 		
-		var handleLocationError = function (e){
+		var alertErr = function (e){
               alert(e.message);
         }
 		
-		getPos(initDestAndCurrPos, handleLocationError);
+		var dumpError = function (e) {
+			debug.innerHTML = e.message;
+		}
+		
+		getPos(initDestAndCurrPos, dumpError);
 		
 		//get current position every 2 seconds
-		setInterval(function(){getPos(updatePath, handleLocationError);}, 2000); 
+		setInterval(function(){getPos(updatePath, dumpError);}, 2000); 
       }
 
 
