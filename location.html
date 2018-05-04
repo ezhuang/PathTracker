@@ -68,9 +68,10 @@
 		var debugElement = document.getElementById('debug');
 		
 		walkPath.setMap(map);
-		  
+		var counter = 0;
 		var getPos = function (callback, errHandler) {
-			debug.innerHTML = "fire";
+			debug.innerHTML = "fire" + counter;
+			counter++;
 			if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(callback, errHandler);
               } else {
