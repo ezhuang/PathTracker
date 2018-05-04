@@ -63,6 +63,8 @@
           strokeWeight: 4
         });
 		
+		var bttn = document.getElementById('over_map_button');
+		
 		var debugElement = document.getElementById('debug');
 		
 		walkPath.setMap(map);
@@ -111,6 +113,37 @@
 		
 		//get current position every 2 seconds
 		setInterval(function(){getPos(updatePath, dumpError);}, 2000); 
+		
+		
+		var getOnClickHandler = function() {
+			var state = 0;
+			return function() {
+				switch(state) {
+					case 0:
+						bttn.textContent = "start";
+						state++;
+						break;
+					case 1:
+						bttn.textContent = "confirm your destination";
+						state++;
+						break;
+					case 2:
+						bttn.textContent = "stop tracking";
+						state++;
+						break;
+					case 3:
+						bttn.textContent = "reset";
+						state = 0;
+						break;
+					default:
+						throw Error('state is wrong!');
+						break;
+				};
+			};
+		};
+		
+		bttn.addEventListener("click", getOnClickHandler());
+		
       }
 
 
